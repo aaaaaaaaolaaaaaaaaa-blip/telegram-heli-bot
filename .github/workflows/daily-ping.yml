@@ -1,11 +1,11 @@
 name: Daily Render Ping - Keep Awake
 
-# Simulated request to keep your Render service awake
-
 on:
   schedule:
-    - cron: '*/14 * * * *'    # Runs every 14 minutes (best for Render Free tier)
-  workflow_dispatch:          # Allows manual triggering from GitHub
+    - cron: '*/14 * * * *'
+  workflow_dispatch:
+  push:                       # هذا مؤقت عشان يظهر الـ Workflow
+    branches: [ main ]
 
 jobs:
   ping-render:
@@ -14,6 +14,6 @@ jobs:
     steps:
       - name: Ping Render Service
         run: |
-          echo "🌐 Pinging your Render app to keep it awake..."
-          curl -I --fail --max-time 15 --silent https://telegram-heli-bot.onrender.com || echo "⚠️ Ping attempt completed (app may still be waking up)"
-          echo "✅ Ping request sent successfully."
+          echo "🌐 Pinging https://telegram-heli-bot.onrender.com ..."
+          curl -I --fail --max-time 15 --silent https://telegram-heli-bot.onrender.com || echo "Ping completed"
+          echo "✅ Done"

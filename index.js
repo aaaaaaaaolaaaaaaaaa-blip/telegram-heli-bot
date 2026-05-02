@@ -4,7 +4,6 @@ import fs from "fs";
 import path from "path";
 
 const TELEGRAM_TOKEN = "8657045334:AAH8m28orGYTz5VEfV4MyHcR1pLWiu5kGJE";
-
 const bot = new TelegramBot(TELEGRAM_TOKEN, { polling: true });
 
 const dataPath = path.join(process.cwd(), "saudi_heliports.json");
@@ -25,24 +24,34 @@ function getDistance(lat1, lon1, lat2, lon2) {
   return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
 }
 
-/* ------------------ جلب الارتفاع ------------------ */
-async function getElevation(lat, lon) {
-  try {
-    const res = await fetch(
-      `https://api.open-elevation.com/api/v1/lookup?locations=${lat},${lon}`
-    );
-    const data = await res.json();
-    return data.results[0].elevation;
-  } catch {
-    return 0;
+/* ------------------ فلتر البحر (مهم جداً) ------------------ */
+function isValidLand(lat, lon) {
+  // حدود جدة التقريبية
+  const minLat = 21.2;
+  const maxLat = 21.9;
+  const minLon = 38.9;
+  const maxLon = 39.4;
+
+  // إذا خارج نطاق جدة = مرفوض
+  if (lat < minLat || lat > maxLat || lon < minLon || lon > maxLon) {
+    return false;
   }
+
+  return true;
 }
 
-/* ------------------ تقييم الموقع ------------------ */
-function getRisk(elevation) {
-  if (elevation < 10) return { level: "🟢 SAFE", note: "سطح مستوٍ مناسب للهبوط" };
-  if (elevation < 100) return { level: "🟡 MEDIUM", note: "أرض غير مستوية جزئياً" };
-  return { level: "🔴 DANGEROUS", note: "تضاريس مرتفعة / غير مناسبة" };
+/* ------------------ تقييم بسيط واقعي ------------------ */
+function getRisk(type) {
+  if (type === "hospital" || type === "airport")
+    return { level: "🟢 SAFE", note: "موقع رسمي مناسب للهبوط" };
+
+  if (type === "open")
+    return { level: "🟡 MEDIUM", note: "منطقة مفتوحة لكن تحتاج تحقق أرضي" };
+
+  if (type === "industrial")
+    return { level: "🟠 CAUTION", note: "منطقة صناعية - عوائق محتملة" };
+
+  return { level: "🔴 RISK", note: "أرض غير مضمونة" };
 }
 
 /* ------------------ استقبال الموقع ------------------ */
@@ -50,7 +59,8 @@ bot.on("location", async (msg) => {
   const chatId = msg.chat.id;
   const { latitude, longitude } = msg.location;
 
-  const sorted = heliports
+  const valid = heliports
+    .filter((h) => isValidLand(h.lat, h.lon)) // يمنع البحر
     .map((h) => ({
       ...h,
       distance: getDistance(latitude, longitude, h.lat, h.lon),
@@ -58,22 +68,20 @@ bot.on("location", async (msg) => {
     .sort((a, b) => a.distance - b.distance)
     .slice(0, 5);
 
-  let reply = `🚁 أقرب مناطق الهبوط:\n\n`;
+  let reply = `🚁 أقرب مواقع الهبوط في جدة:\n\n`;
 
-  for (const s of sorted) {
-    const elevation = await getElevation(s.lat, s.lon);
-    const risk = getRisk(elevation);
+  valid.forEach((s, i) => {
+    const risk = getRisk(s.type);
 
-    reply += `📍 ${s.name}\n`;
-    reply += `📏 ${s.distance.toFixed(2)} km\n`;
-    reply += `🏔 ارتفاع: ${elevation} m\n`;
-    reply += `⚠️ الحالة: ${risk.level}\n`;
+    reply += `${i + 1}- ${s.name}\n`;
+    reply += `📍 ${s.distance.toFixed(2)} km\n`;
+    reply += `⚠️ ${risk.level}\n`;
     reply += `📝 ${risk.note}\n\n`;
-  }
+  });
 
-  const keyboard = sorted.map((s) => [
+  const keyboard = valid.map((s) => [
     {
-      text: `فتح ${s.name}`,
+      text: `فتح الموقع`,
       url: `https://www.google.com/maps?q=${s.lat},${s.lon}`,
     },
   ]);
@@ -85,7 +93,5 @@ bot.on("location", async (msg) => {
 
 /* ------------------ سيرفر ------------------ */
 const app = express();
-
 app.get("/", (req, res) => res.send("Bot running"));
-
 app.listen(process.env.PORT || 3000);

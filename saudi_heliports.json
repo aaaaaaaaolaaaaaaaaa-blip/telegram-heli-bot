@@ -4,27 +4,21 @@
   { "city": "Jeddah", "name": "North Obhur Open Zone 3", "lat": 21.7465, "lon": 39.1187, "type": "open" },
   { "city": "Jeddah", "name": "Obhur Hills Edge 1", "lat": 21.7341, "lon": 39.1210, "type": "rough" },
   { "city": "Jeddah", "name": "Obhur Hills Edge 2", "lat": 21.7295, "lon": 39.1264, "type": "rough" },
-
   { "city": "Jeddah", "name": "North Industrial Area 1", "lat": 21.6621, "lon": 39.2154, "type": "industrial" },
   { "city": "Jeddah", "name": "North Industrial Area 2", "lat": 21.6588, "lon": 39.2191, "type": "industrial" },
   { "city": "Jeddah", "name": "North Industrial Area 3", "lat": 21.6532, "lon": 39.2229, "type": "industrial" },
-
   { "city": "Jeddah", "name": "Al Nuzha Open Ground 1", "lat": 21.6101, "lon": 39.1822, "type": "open" },
   { "city": "Jeddah", "name": "Al Nuzha Open Ground 2", "lat": 21.6074, "lon": 39.1888, "type": "open" },
   { "city": "Jeddah", "name": "Al Nuzha Open Ground 3", "lat": 21.6039, "lon": 39.1932, "type": "open" },
-
   { "city": "Jeddah", "name": "South Jeddah Desert Edge 1", "lat": 21.4302, "lon": 39.2331, "type": "rough" },
   { "city": "Jeddah", "name": "South Jeddah Desert Edge 2", "lat": 21.4268, "lon": 39.2395, "type": "rough" },
   { "city": "Jeddah", "name": "South Jeddah Desert Edge 3", "lat": 21.4219, "lon": 39.2450, "type": "rough" },
-
   { "city": "Jeddah", "name": "Al Rehab Open Field 1", "lat": 21.5312, "lon": 39.2104, "type": "open" },
   { "city": "Jeddah", "name": "Al Rehab Open Field 2", "lat": 21.5287, "lon": 39.2156, "type": "open" },
   { "city": "Jeddah", "name": "Al Rehab Open Field 3", "lat": 21.5249, "lon": 39.2198, "type": "open" },
-
   { "city": "Jeddah", "name": "Industrial East Yard 1", "lat": 21.5129, "lon": 39.1732, "type": "industrial" },
   { "city": "Jeddah", "name": "Industrial East Yard 2", "lat": 21.5098, "lon": 39.1774, "type": "industrial" },
   { "city": "Jeddah", "name": "Industrial East Yard 3", "lat": 21.5065, "lon": 39.1810, "type": "industrial" },
-
   { "city": "Jeddah", "name": "Corniche Inland Open 1", "lat": 21.5863, "lon": 39.1088, "type": "open" },
   { "city": "Jeddah", "name": "Corniche Inland Open 2", "lat": 21.5831, "lon": 39.1120, "type": "open" },
   { "city": "Jeddah", "name": "Corniche Inland Open 3", "lat": 21.5799, "lon": 39.1162, "type": "open" }

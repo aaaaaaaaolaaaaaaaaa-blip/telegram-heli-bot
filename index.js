@@ -3,25 +3,14 @@ import express from "express";
 import fs from "fs";
 import path from "path";
 
-/* =========================
-   TOKEN
-========================= */
-const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN || "8657045334:AAH8m28orGYTz5VEfV4MyHcR1pLWiu5kGJE";
+const TELEGRAM_TOKEN = "8657045334:AAH8m28orGYTz5VEfV4MyHcR1pLWiu5kGJE";
 
-/* =========================
-   BOT
-========================= */
 const bot = new TelegramBot(TELEGRAM_TOKEN, { polling: true });
 
-/* =========================
-   DATA
-========================= */
 const dataPath = path.join(process.cwd(), "saudi_heliports.json");
 const heliports = JSON.parse(fs.readFileSync(dataPath, "utf-8"));
 
-/* =========================
-   DISTANCE (Haversine)
-========================= */
+/* ------------------ المسافة ------------------ */
 function getDistance(lat1, lon1, lat2, lon2) {
   const R = 6371;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
@@ -36,73 +25,67 @@ function getDistance(lat1, lon1, lat2, lon2) {
   return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
 }
 
-/* =========================
-   TERRAIN CLASSIFICATION (بسيط لكن ثابت)
-========================= */
-function classifyArea(distance) {
-  if (distance < 5) {
-    return { risk: "🟢 آمن", note: "منطقة مناسبة نسبياً للهبوط" };
+/* ------------------ جلب الارتفاع ------------------ */
+async function getElevation(lat, lon) {
+  try {
+    const res = await fetch(
+      `https://api.open-elevation.com/api/v1/lookup?locations=${lat},${lon}`
+    );
+    const data = await res.json();
+    return data.results[0].elevation;
+  } catch {
+    return 0;
   }
-  if (distance < 15) {
-    return { risk: "🟡 متوسط الخطورة", note: "أرض قد تكون غير مستوية" };
-  }
-  return { risk: "🔴 خطير", note: "تضاريس صعبة أو بعيدة عن العمران" };
 }
 
-/* =========================
-   LOCATION HANDLER
-========================= */
+/* ------------------ تقييم الموقع ------------------ */
+function getRisk(elevation) {
+  if (elevation < 10) return { level: "🟢 SAFE", note: "سطح مستوٍ مناسب للهبوط" };
+  if (elevation < 100) return { level: "🟡 MEDIUM", note: "أرض غير مستوية جزئياً" };
+  return { level: "🔴 DANGEROUS", note: "تضاريس مرتفعة / غير مناسبة" };
+}
+
+/* ------------------ استقبال الموقع ------------------ */
 bot.on("location", async (msg) => {
   const chatId = msg.chat.id;
   const { latitude, longitude } = msg.location;
 
-  if (!latitude || !longitude) {
-    return bot.sendMessage(chatId, "❌ لم يتم استلام الموقع بشكل صحيح");
-  }
-
-  const results = heliports
-    .map((h) => {
-      const distance = getDistance(latitude, longitude, h.lat, h.lon);
-      return {
-        ...h,
-        distance,
-        ...classifyArea(distance),
-      };
-    })
+  const sorted = heliports
+    .map((h) => ({
+      ...h,
+      distance: getDistance(latitude, longitude, h.lat, h.lon),
+    }))
     .sort((a, b) => a.distance - b.distance)
     .slice(0, 5);
 
-  let reply = `🚁 أقرب 5 مواقع هبوط لك:\n\n`;
+  let reply = `🚁 أقرب مناطق الهبوط:\n\n`;
 
-  results.forEach((r, i) => {
-    reply +=
-      `${i + 1}- ${r.name}\n` +
-      `📍 ${r.city}\n` +
-      `📏 ${r.distance.toFixed(2)} كم\n` +
-      `⚠️ الحالة: ${r.risk}\n` +
-      `📝 ${r.note}\n\n`;
-  });
+  for (const s of sorted) {
+    const elevation = await getElevation(s.lat, s.lon);
+    const risk = getRisk(elevation);
 
-  const keyboard = results.map((r) => [
+    reply += `📍 ${s.name}\n`;
+    reply += `📏 ${s.distance.toFixed(2)} km\n`;
+    reply += `🏔 ارتفاع: ${elevation} m\n`;
+    reply += `⚠️ الحالة: ${risk.level}\n`;
+    reply += `📝 ${risk.note}\n\n`;
+  }
+
+  const keyboard = sorted.map((s) => [
     {
-      text: `📍 فتح الموقع`,
-      url: `https://www.google.com/maps?q=${r.lat},${r.lon}`,
+      text: `فتح ${s.name}`,
+      url: `https://www.google.com/maps?q=${s.lat},${s.lon}`,
     },
   ]);
 
-  await bot.sendMessage(chatId, reply, {
+  bot.sendMessage(chatId, reply, {
     reply_markup: { inline_keyboard: keyboard },
   });
 });
 
-/* =========================
-   EXPRESS (Render health check)
-========================= */
+/* ------------------ سيرفر ------------------ */
 const app = express();
 
-app.get("/", (req, res) => {
-  res.send("🚁 Bot is running");
-});
+app.get("/", (req, res) => res.send("Bot running"));
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log("Server running on", PORT));
+app.listen(process.env.PORT || 3000);

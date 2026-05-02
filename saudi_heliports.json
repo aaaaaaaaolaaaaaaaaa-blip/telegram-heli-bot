@@ -1,242 +1,198 @@
 [
- 
   {
     "city": "Riyadh",
     "name": "King Khalid International Airport Helipad",
     "lat": 24.9576,
-    "lon": 46.6984
+    "lon": 46.6984,
+    "type": "safe",
+    "risk": "low",
+    "notes": "Major airport emergency landing zone"
   },
   {
     "city": "Riyadh",
-    "name": "King Fahad Hospital Helipad",
-    "lat": 24.7503,
-    "lon": 46.8543
+    "name": "King Fahad Medical City Helipad",
+    "lat": 24.6877,
+    "lon": 46.7382,
+    "type": "safe",
+    "risk": "low",
+    "notes": "Hospital emergency helipad"
   },
   {
     "city": "Riyadh",
-    "name": "Riyadh Central Hospital Helipad",
+    "name": "Riyadh Central Open Field",
     "lat": 24.7136,
-    "lon": 46.6753
+    "lon": 46.6753,
+    "type": "rough",
+    "risk": "medium",
+    "notes": "Open urban area, limited obstacles"
   },
   {
     "city": "Riyadh",
-    "name": "Princess Noura University Helipad",
-    "lat": 24.7921,
-    "lon": 46.6983
+    "name": "Diriyah Open Desert Edge",
+    "lat": 24.7500,
+    "lon": 46.5600,
+    "type": "rough",
+    "risk": "medium",
+    "notes": "Sandy terrain near outskirts"
   },
-  {
-    "city": "Riyadh",
-    "name": "King Salman Air Base Helipads",
-    "lat": 24.6800,
-    "lon": 46.7700
-  },
-
 
   {
     "city": "Jeddah",
     "name": "King Abdulaziz International Airport Helipad",
     "lat": 21.6705,
-    "lon": 39.1523
+    "lon": 39.1523,
+    "type": "safe",
+    "risk": "low",
+    "notes": "Main airport helipad"
   },
   {
     "city": "Jeddah",
-    "name": "Jeddah Central Hospital Helipad",
-    "lat": 21.5698,
-    "lon": 39.1665
+    "name": "Jeddah Corniche Open Area",
+    "lat": 21.5433,
+    "lon": 39.1728,
+    "type": "rough",
+    "risk": "medium",
+    "notes": "Coastal open space"
   },
   {
     "city": "Jeddah",
     "name": "King Fahd Hospital Helipad",
     "lat": 21.4858,
-    "lon": 39.1925
+    "lon": 39.1925,
+    "type": "safe",
+    "risk": "low",
+    "notes": "Medical emergency landing"
   },
   {
     "city": "Jeddah",
-    "name": "Islamic Port Helipad",
-    "lat": 21.5076,
-    "lon": 39.0858
-  },
-  {
-    "city": "Jeddah",
-    "name": "Jeddah Corniche Helipad",
-    "lat": 21.5381,
-    "lon": 39.1719
+    "name": "Industrial Zone Open Field",
+    "lat": 21.3500,
+    "lon": 39.2000,
+    "type": "rough",
+    "risk": "medium",
+    "notes": "Open industrial area"
   },
 
-  {
-    "city": "Makkah",
-    "name": "Makkah Central Helipad",
-    "lat": 21.3891,
-    "lon": 39.8579
-  },
   {
     "city": "Makkah",
     "name": "King Abdullah Medical City Helipad",
     "lat": 21.4180,
-    "lon": 39.8226
+    "lon": 39.8226,
+    "type": "safe",
+    "risk": "low",
+    "notes": "Hospital emergency landing"
   },
   {
     "city": "Makkah",
-    "name": "Al Noor Hospital Helipad",
-    "lat": 21.4160,
-    "lon": 39.8230
+    "name": "Makkah Central Zone",
+    "lat": 21.3891,
+    "lon": 39.8579,
+    "type": "rough",
+    "risk": "high",
+    "notes": "Dense urban area"
   },
   {
     "city": "Makkah",
-    "name": "Heraa General Hospital Helipad",
-    "lat": 21.4370,
-    "lon": 39.8390
+    "name": "Mountain Surrounding Area",
+    "lat": 21.3000,
+    "lon": 39.8000,
+    "type": "mountain",
+    "risk": "high",
+    "notes": "High elevation terrain"
   },
 
- 
   {
     "city": "Madinah",
     "name": "Prince Mohammad Bin Abdulaziz Airport Helipad",
     "lat": 24.5534,
-    "lon": 39.7051
+    "lon": 39.7051,
+    "type": "safe",
+    "risk": "low",
+    "notes": "Airport emergency landing"
   },
   {
     "city": "Madinah",
-    "name": "Al Ansar Hospital Helipad",
-    "lat": 24.5248,
-    "lon": 39.5690
+    "name": "Al Haram Surrounding Area",
+    "lat": 24.4686,
+    "lon": 39.6142,
+    "type": "rough",
+    "risk": "medium",
+    "notes": "Crowded urban zone"
   },
-  {
-    "city": "Madinah",
-    "name": "Al Noor Specialist Hospital Helipad",
-    "lat": 24.5010,
-    "lon": 39.5710
-  },
-
 
   {
     "city": "Dammam",
     "name": "King Fahd International Airport Helipad",
     "lat": 26.3927,
-    "lon": 49.9777
+    "lon": 49.9777,
+    "type": "safe",
+    "risk": "low",
+    "notes": "Main airport"
   },
   {
     "city": "Dammam",
-    "name": "Dammam Central Hospital Helipad",
-    "lat": 26.4344,
-    "lon": 50.0971
-  },
-  {
-    "city": "Dammam",
-    "name": "King Fahd Hospital of the University Helipad",
-    "lat": 26.4670,
-    "lon": 50.0574
+    "name": "Dammam Coastal Open Area",
+    "lat": 26.4200,
+    "lon": 50.1000,
+    "type": "rough",
+    "risk": "medium",
+    "notes": "Coastal sandy terrain"
   },
 
-  
   {
     "city": "Abha",
     "name": "Abha International Airport Helipad",
     "lat": 18.2230,
-    "lon": 42.6566
+    "lon": 42.6566,
+    "type": "safe",
+    "risk": "low",
+    "notes": "Airport helipad"
   },
   {
     "city": "Abha",
-    "name": "King Khalid University Hospital Helipad",
-    "lat": 18.2160,
-    "lon": 42.5050
-  },
-  {
-    "city": "Abha",
-    "name": "Abha Central Hospital Helipad",
-    "lat": 18.2200,
-    "lon": 42.6600
+    "name": "Asir Mountain Ridge",
+    "lat": 18.1500,
+    "lon": 42.5000,
+    "type": "mountain",
+    "risk": "high",
+    "notes": "Steep terrain"
   },
 
- 
   {
     "city": "Taif",
     "name": "Taif Regional Airport Helipad",
     "lat": 21.5600,
-    "lon": 40.4763
+    "lon": 40.4763,
+    "type": "safe",
+    "risk": "low",
+    "notes": "Airport landing zone"
   },
   {
     "city": "Taif",
-    "name": "Taif Central Hospital Helipad",
-    "lat": 21.4670,
-    "lon": 40.5010
+    "name": "Al Hada Mountain Area",
+    "lat": 21.4000,
+    "lon": 40.4000,
+    "type": "mountain",
+    "risk": "high",
+    "notes": "Very steep mountains"
   },
-
 
   {
     "city": "Tabuk",
     "name": "Tabuk Airport Helipad",
     "lat": 28.3654,
-    "lon": 36.6189
+    "lon": 36.6189,
+    "type": "safe",
+    "risk": "low",
+    "notes": "Airport landing zone"
   },
   {
     "city": "Tabuk",
-    "name": "Neom Bay Airport Helipad",
-    "lat": 28.9847,
-    "lon": 36.1947
-  },
-
-  
-  {
-    "city": "Hail",
-    "name": "Hail Regional Airport Helipad",
-    "lat": 27.4863,
-    "lon": 41.6861
-  },
-  {
-    "city": "Hail",
-    "name": "Hail Central Hospital Helipad",
-    "lat": 27.5060,
-    "lon": 41.69
-  },
-
-
-  {
-    "city": "Al Bahah",
-    "name": "Al Bahah Airport Helipad",
-    "lat": 20.0122,
-    "lon": 41.4671
-  },
-
-
-  {
-    "city": "Jazan",
-    "name": "Jazan Regional Airport Helipad",
-    "lat": 16.9011,
-    "lon": 42.5858
-  },
-  {
-    "city": "Jazan",
-    "name": "Jazan Central Hospital Helipad",
-    "lat": 16.8995,
-    "lon": 42.5733
-  },
-
-
-  {
-    "city": "Najran",
-    "name": "Najran Domestic Airport Helipad",
-    "lat": 17.6114,
-    "lon": 44.4192
-  },
-  {
-    "city": "Najran",
-    "name": "Najran Central Hospital Helipad",
-    "lat": 17.6180,
-    "lon": 44.4180
-  },
-
- 
-  {
-    "city": "Buraidah",
-    "name": "Al Qassim Regional Airport Helipad",
-    "lat": 26.3256,
-    "lon": 43.9630
-  },
-  {
-    "city": "Buraidah",
-    "name": "Buraidah Central Hospital Helipad",
-    "lat": 26.3340,
-    "lon": 43.9840
+    "name": "Neom Desert Zone",
+    "lat": 28.9000,
+    "lon": 36.2000,
+    "type": "rough",
+    "risk": "medium",
+    "notes": "Desert open terrain"
   }
 ]

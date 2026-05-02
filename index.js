@@ -1,15 +1,16 @@
 import TelegramBot from "node-telegram-bot-api";
 import express from "express";
-import fs from "fs";
-import path from "path";
+import axios from "axios";
 
+/* -----------------------------
+   🔑 توكن البوت
+----------------------------- */
 const TELEGRAM_TOKEN = "8657045334:AAH8m28orGYTz5VEfV4MyHcR1pLWiu5kGJE";
 const bot = new TelegramBot(TELEGRAM_TOKEN, { polling: true });
 
-const dataPath = path.join(process.cwd(), "saudi_heliports.json");
-const heliports = JSON.parse(fs.readFileSync(dataPath, "utf-8"));
-
-/* ------------------ المسافة ------------------ */
+/* -----------------------------
+   حساب المسافة
+----------------------------- */
 function getDistance(lat1, lon1, lat2, lon2) {
   const R = 6371;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
@@ -24,74 +25,117 @@ function getDistance(lat1, lon1, lat2, lon2) {
   return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
 }
 
-/* ------------------ فلتر البحر (مهم جداً) ------------------ */
-function isValidLand(lat, lon) {
-  // حدود جدة التقريبية
-  const minLat = 21.2;
-  const maxLat = 21.9;
-  const minLon = 38.9;
-  const maxLon = 39.4;
+/* -----------------------------
+   جلب أراضي حقيقية من OSM
+----------------------------- */
+async function getRealZones(lat, lon) {
+  const query = `
+  [out:json];
+  (
+    way["landuse"="grass"](around:5000,${lat},${lon});
+    way["landuse"="industrial"](around:5000,${lat},${lon});
+    way["natural"="sand"](around:5000,${lat},${lon});
+    way["natural"="bare_rock"](around:5000,${lat},${lon});
+  );
+  out center;
+  `;
 
-  // إذا خارج نطاق جدة = مرفوض
-  if (lat < minLat || lat > maxLat || lon < minLon || lon > maxLon) {
-    return false;
-  }
+  const res = await axios.post(
+    "https://overpass-api.de/api/interpreter",
+    query,
+    { headers: { "Content-Type": "text/plain" } }
+  );
 
+  return res.data.elements || [];
+}
+
+/* -----------------------------
+   فلترة مناطق غير مناسبة
+----------------------------- */
+function isSafe(tags = {}) {
+  if (tags.landuse === "residential") return false;
+  if (tags.building) return false;
+  if (tags.highway) return false;
   return true;
 }
 
-/* ------------------ تقييم بسيط واقعي ------------------ */
-function getRisk(type) {
-  if (type === "hospital" || type === "airport")
-    return { level: "🟢 SAFE", note: "موقع رسمي مناسب للهبوط" };
+/* -----------------------------
+   تقييم عربي
+----------------------------- */
+function classify(tags = {}) {
+  if (tags.landuse === "industrial")
+    return { level: "🟡 متوسط", note: "منطقة صناعية - تحقق قبل الهبوط" };
 
-  if (type === "open")
-    return { level: "🟡 MEDIUM", note: "منطقة مفتوحة لكن تحتاج تحقق أرضي" };
+  if (tags.landuse === "grass")
+    return { level: "🟢 مناسب", note: "أرض مفتوحة نسبياً" };
 
-  if (type === "industrial")
-    return { level: "🟠 CAUTION", note: "منطقة صناعية - عوائق محتملة" };
+  if (tags.natural === "sand")
+    return { level: "🟡 صحراوي", note: "أرض رملية تحتاج تقييم بصري" };
 
-  return { level: "🔴 RISK", note: "أرض غير مضمونة" };
+  return { level: "🔴 غير مناسب", note: "منطقة غير واضحة" };
 }
 
-/* ------------------ استقبال الموقع ------------------ */
+/* -----------------------------
+   استقبال موقع المستخدم
+----------------------------- */
 bot.on("location", async (msg) => {
   const chatId = msg.chat.id;
   const { latitude, longitude } = msg.location;
 
-  const valid = heliports
-    .filter((h) => isValidLand(h.lat, h.lon)) // يمنع البحر
-    .map((h) => ({
-      ...h,
-      distance: getDistance(latitude, longitude, h.lat, h.lon),
-    }))
-    .sort((a, b) => a.distance - b.distance)
-    .slice(0, 5);
+  const data = await getRealZones(latitude, longitude);
 
-  let reply = `🚁 أقرب مواقع الهبوط في جدة:\n\n`;
+  const results = data
+    .filter((p) => isSafe(p.tags || {}))
+    .slice(0, 5)
+    .map((p) => {
+      const lat = p.center.lat;
+      const lon = p.center.lon;
 
-  valid.forEach((s, i) => {
-    const risk = getRisk(s.type);
+      return {
+        lat,
+        lon,
+        distance: getDistance(latitude, longitude, lat, lon),
+        ...classify(p.tags || {}),
+      };
+    })
+    .sort((a, b) => a.distance - b.distance);
 
-    reply += `${i + 1}- ${s.name}\n`;
-    reply += `📍 ${s.distance.toFixed(2)} km\n`;
-    reply += `⚠️ ${risk.level}\n`;
-    reply += `📝 ${risk.note}\n\n`;
+  if (!results.length) {
+    return bot.sendMessage(
+      chatId,
+      "🚨 ما تم العثور على مناطق مناسبة قريبة"
+    );
+  }
+
+  let reply = "🚁 أقرب مناطق هبوط محتملة (تحليل أرضي):\n\n";
+
+  results.forEach((p, i) => {
+    reply += `${i + 1}- ${p.distance.toFixed(2)} كم\n`;
+    reply += `${p.level}\n`;
+    reply += `${p.note}\n\n`;
   });
 
-  const keyboard = valid.map((s) => [
+  const keyboard = results.map((p) => [
     {
-      text: `فتح الموقع`,
-      url: `https://www.google.com/maps?q=${s.lat},${s.lon}`,
+      text: "🗺 عرض على الخريطة",
+      url: `https://www.google.com/maps?q=${p.lat},${p.lon}`,
     },
   ]);
 
-  bot.sendMessage(chatId, reply, {
+  await bot.sendMessage(chatId, reply, {
     reply_markup: { inline_keyboard: keyboard },
   });
 });
 
-/* ------------------ سيرفر ------------------ */
+/* -----------------------------
+   سيرفر Render
+----------------------------- */
 const app = express();
-app.get("/", (req, res) => res.send("Bot running"));
-app.listen(process.env.PORT || 3000);
+
+app.get("/", (req, res) => {
+  res.send("Bot is running 🚁");
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log("Running on port " + PORT));
+       

@@ -1,198 +1,35 @@
 [
   {
-    "city": "Riyadh",
-    "name": "King Khalid International Airport Helipad",
-    "lat": 24.9576,
-    "lon": 46.6984,
-    "type": "safe",
-    "risk": "low",
-    "notes": "Major airport emergency landing zone"
-  },
-  {
-    "city": "Riyadh",
-    "name": "King Fahad Medical City Helipad",
-    "lat": 24.6877,
-    "lon": 46.7382,
-    "type": "safe",
-    "risk": "low",
-    "notes": "Hospital emergency helipad"
-  },
-  {
-    "city": "Riyadh",
-    "name": "Riyadh Central Open Field",
-    "lat": 24.7136,
-    "lon": 46.6753,
-    "type": "rough",
-    "risk": "medium",
-    "notes": "Open urban area, limited obstacles"
-  },
-  {
-    "city": "Riyadh",
-    "name": "Diriyah Open Desert Edge",
-    "lat": 24.7500,
-    "lon": 46.5600,
-    "type": "rough",
-    "risk": "medium",
-    "notes": "Sandy terrain near outskirts"
-  },
-
-  {
     "city": "Jeddah",
     "name": "King Abdulaziz International Airport Helipad",
     "lat": 21.6705,
     "lon": 39.1523,
-    "type": "safe",
-    "risk": "low",
-    "notes": "Main airport helipad"
+    "type": "airport",
+    "terrain": "open"
   },
   {
     "city": "Jeddah",
-    "name": "Jeddah Corniche Open Area",
-    "lat": 21.5433,
-    "lon": 39.1728,
-    "type": "rough",
-    "risk": "medium",
-    "notes": "Coastal open space"
-  },
-  {
-    "city": "Jeddah",
-    "name": "King Fahd Hospital Helipad",
-    "lat": 21.4858,
-    "lon": 39.1925,
-    "type": "safe",
-    "risk": "low",
-    "notes": "Medical emergency landing"
-  },
-  {
-    "city": "Jeddah",
-    "name": "Industrial Zone Open Field",
-    "lat": 21.3500,
-    "lon": 39.2000,
-    "type": "rough",
-    "risk": "medium",
-    "notes": "Open industrial area"
-  },
-
-  {
-    "city": "Makkah",
-    "name": "King Abdullah Medical City Helipad",
-    "lat": 21.4180,
-    "lon": 39.8226,
-    "type": "safe",
-    "risk": "low",
-    "notes": "Hospital emergency landing"
+    "name": "Jeddah Corniche Helipad",
+    "lat": 21.5381,
+    "lon": 39.1719,
+    "type": "coastal",
+    "terrain": "windy"
   },
   {
     "city": "Makkah",
-    "name": "Makkah Central Zone",
+    "name": "Makkah Central Helipad",
     "lat": 21.3891,
     "lon": 39.8579,
-    "type": "rough",
-    "risk": "high",
-    "notes": "Dense urban area"
+    "type": "urban_rooftop",
+    "terrain": "urban"
   },
   {
-    "city": "Makkah",
-    "name": "Mountain Surrounding Area",
-    "lat": 21.3000,
-    "lon": 39.8000,
-    "type": "mountain",
-    "risk": "high",
-    "notes": "High elevation terrain"
-  },
-
-  {
-    "city": "Madinah",
-    "name": "Prince Mohammad Bin Abdulaziz Airport Helipad",
-    "lat": 24.5534,
-    "lon": 39.7051,
-    "type": "safe",
-    "risk": "low",
-    "notes": "Airport emergency landing"
-  },
-  {
-    "city": "Madinah",
-    "name": "Al Haram Surrounding Area",
-    "lat": 24.4686,
-    "lon": 39.6142,
-    "type": "rough",
-    "risk": "medium",
-    "notes": "Crowded urban zone"
-  },
-
-  {
-    "city": "Dammam",
-    "name": "King Fahd International Airport Helipad",
-    "lat": 26.3927,
-    "lon": 49.9777,
-    "type": "safe",
-    "risk": "low",
-    "notes": "Main airport"
-  },
-  {
-    "city": "Dammam",
-    "name": "Dammam Coastal Open Area",
-    "lat": 26.4200,
-    "lon": 50.1000,
-    "type": "rough",
-    "risk": "medium",
-    "notes": "Coastal sandy terrain"
-  },
-
-  {
-    "city": "Abha",
-    "name": "Abha International Airport Helipad",
-    "lat": 18.2230,
-    "lon": 42.6566,
-    "type": "safe",
-    "risk": "low",
-    "notes": "Airport helipad"
-  },
-  {
-    "city": "Abha",
-    "name": "Asir Mountain Ridge",
-    "lat": 18.1500,
-    "lon": 42.5000,
-    "type": "mountain",
-    "risk": "high",
-    "notes": "Steep terrain"
-  },
-
-  {
-    "city": "Taif",
-    "name": "Taif Regional Airport Helipad",
-    "lat": 21.5600,
-    "lon": 40.4763,
-    "type": "safe",
-    "risk": "low",
-    "notes": "Airport landing zone"
-  },
-  {
-    "city": "Taif",
-    "name": "Al Hada Mountain Area",
-    "lat": 21.4000,
-    "lon": 40.4000,
-    "type": "mountain",
-    "risk": "high",
-    "notes": "Very steep mountains"
-  },
-
-  {
-    "city": "Tabuk",
-    "name": "Tabuk Airport Helipad",
-    "lat": 28.3654,
-    "lon": 36.6189,
-    "type": "safe",
-    "risk": "low",
-    "notes": "Airport landing zone"
-  },
-  {
-    "city": "Tabuk",
-    "name": "Neom Desert Zone",
-    "lat": 28.9000,
-    "lon": 36.2000,
-    "type": "rough",
-    "risk": "medium",
-    "notes": "Desert open terrain"
+    "city": "Riyadh",
+    "name": "King Khalid International Airport Helipad",
+    "lat": 24.9576,
+    "lon": 46.6984,
+    "type": "airport",
+    "terrain": "open"
   }
 ]
+ 

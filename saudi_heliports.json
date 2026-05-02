@@ -1,181 +1,65 @@
 [
   {
     "city": "Riyadh",
-    "name": "North Riyadh Open Desert",
-    "lat": 25.15,
-    "lon": 46.72,
-    "terrain": "sand"
+    "name": "King Khalid International Airport Helipad",
+    "lat": 24.9576,
+    "lon": 46.6984
   },
   {
     "city": "Riyadh",
-    "name": "East Riyadh Open Area",
-    "lat": 24.95,
-    "lon": 46.90,
-    "terrain": "sand"
+    "name": "King Fahad Hospital Helipad",
+    "lat": 24.7503,
+    "lon": 46.8543
   },
   {
     "city": "Riyadh",
-    "name": "West Riyadh Rocky Zone",
-    "lat": 24.90,
-    "lon": 46.55,
-    "terrain": "rock"
-  },
-  {
-    "city": "Riyadh",
-    "name": "South Riyadh Desert Edge",
-    "lat": 24.60,
-    "lon": 46.70,
-    "terrain": "sand"
-  },
-  {
-    "city": "Riyadh",
-    "name": "Riyadh Outskirts Open Field",
-    "lat": 24.80,
-    "lon": 46.80,
-    "terrain": "open"
+    "name": "Riyadh Central Hospital Helipad",
+    "lat": 24.7136,
+    "lon": 46.6753
   },
 
   {
     "city": "Jeddah",
-    "name": "East Jeddah Open Desert",
-    "lat": 21.62,
-    "lon": 39.25,
-    "terrain": "sand"
+    "name": "King Abdulaziz International Airport Helipad",
+    "lat": 21.6705,
+    "lon": 39.1523
   },
   {
     "city": "Jeddah",
-    "name": "North Jeddah Flat Land",
-    "lat": 21.75,
-    "lon": 39.20,
-    "terrain": "open"
+    "name": "Jeddah Corniche Open Area Zone",
+    "lat": 21.5863,
+    "lon": 39.1088
   },
   {
     "city": "Jeddah",
-    "name": "South Jeddah Coastal Edge",
-    "lat": 21.40,
-    "lon": 39.10,
-    "terrain": "sand"
-  },
-  {
-    "city": "Jeddah",
-    "name": "West Jeddah Industrial Outskirts",
-    "lat": 21.55,
-    "lon": 39.05,
-    "terrain": "rock"
-  },
-  {
-    "city": "Jeddah",
-    "name": "Jeddah Eastern Open Plain",
-    "lat": 21.68,
-    "lon": 39.30,
-    "terrain": "open"
+    "name": "Industrial Area Open Ground",
+    "lat": 21.5432,
+    "lon": 39.2011
   },
 
   {
     "city": "Makkah",
-    "name": "Makkah Mountain Edge North",
-    "lat": 21.50,
-    "lon": 39.80,
-    "terrain": "rock"
+    "name": "Makkah Open Desert Edge Zone",
+    "lat": 21.3891,
+    "lon": 39.8579
   },
   {
     "city": "Makkah",
-    "name": "Makkah Eastern Valley Area",
-    "lat": 21.35,
-    "lon": 39.90,
-    "terrain": "rock"
-  },
-  {
-    "city": "Makkah",
-    "name": "South Makkah Open Area",
-    "lat": 21.20,
-    "lon": 39.75,
-    "terrain": "sand"
-  },
-  {
-    "city": "Makkah",
-    "name": "Makkah Outskirts Plateau",
-    "lat": 21.40,
-    "lon": 39.65,
-    "terrain": "rock"
-  },
-  {
-    "city": "Makkah",
-    "name": "Western Makkah Open Land",
-    "lat": 21.45,
-    "lon": 39.60,
-    "terrain": "open"
+    "name": "King Abdullah Medical City Area",
+    "lat": 21.4180,
+    "lon": 39.8226
   },
 
   {
     "city": "Madinah",
-    "name": "North Madinah Desert Area",
-    "lat": 24.70,
-    "lon": 39.55,
-    "terrain": "sand"
+    "name": "Madinah Open Plains Zone",
+    "lat": 24.5247,
+    "lon": 39.5692
   },
   {
     "city": "Madinah",
-    "name": "East Madinah Open Ground",
-    "lat": 24.60,
-    "lon": 39.70,
-    "terrain": "open"
-  },
-  {
-    "city": "Madinah",
-    "name": "South Madinah Rocky Zone",
-    "lat": 24.45,
-    "lon": 39.60,
-    "terrain": "rock"
-  },
-  {
-    "city": "Madinah",
-    "name": "West Madinah Plains",
-    "lat": 24.55,
-    "lon": 39.40,
-    "terrain": "open"
-  },
-  {
-    "city": "Madinah",
-    "name": "Madinah Desert Fringe",
-    "lat": 24.80,
-    "lon": 39.50,
-    "terrain": "sand"
-  },
-
-  {
-    "city": "Dammam",
-    "name": "North Dammam Open Area",
-    "lat": 26.50,
-    "lon": 50.10,
-    "terrain": "sand"
-  },
-  {
-    "city": "Dammam",
-    "name": "East Dammam Coastal Open Land",
-    "lat": 26.45,
-    "lon": 50.20,
-    "terrain": "sand"
-  },
-  {
-    "city": "Dammam",
-    "name": "West Dammam Industrial Edge",
-    "lat": 26.40,
-    "lon": 49.90,
-    "terrain": "rock"
-  },
-  {
-    "city": "Dammam",
-    "name": "South Dammam Flat Area",
-    "lat": 26.30,
-    "lon": 50.00,
-    "terrain": "open"
-  },
-  {
-    "city": "Dammam",
-    "name": "Dammam Desert Outskirts",
-    "lat": 26.60,
-    "lon": 49.95,
-    "terrain": "sand"
+    "name": "Prince Mohammad Airport Surroundings",
+    "lat": 24.5534,
+    "lon": 39.7051
   }
 ]

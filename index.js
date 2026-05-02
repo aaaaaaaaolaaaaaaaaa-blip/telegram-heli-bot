@@ -2,26 +2,22 @@ import TelegramBot from "node-telegram-bot-api";
 import express from "express";
 import axios from "axios";
 
-/* -----------------------------
-   🔑 التوكن
------------------------------ */
+// ملاحظة أمنية: يفضل دائماً استخدام process.env.TELEGRAM_TOKEN في Render
 const TELEGRAM_TOKEN = "8657045334:AAH8m28orGYTz5VEfV4MyHcR1pLWiu5kGJE";
 const bot = new TelegramBot(TELEGRAM_TOKEN, { polling: true });
 
 /* -----------------------------
-   حساب المسافة
+   حساب المسافة (Haversine Formula)
 ----------------------------- */
 function getDistance(lat1, lon1, lat2, lon2) {
-  const R = 6371;
+  const R = 6371; 
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
   const dLon = ((lon2 - lon1) * Math.PI) / 180;
-
   const a =
     Math.sin(dLat / 2) ** 2 +
     Math.cos((lat1 * Math.PI) / 180) *
       Math.cos((lat2 * Math.PI) / 180) *
       Math.sin(dLon / 2) ** 2;
-
   return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
 }
 
@@ -34,8 +30,11 @@ async function getZones(lat, lon) {
     [out:json];
     (
       way["landuse"="grass"](around:5000,${lat},${lon});
+      way["landuse"="meadow"](around:5000,${lat},${lon});
       way["landuse"="industrial"](around:5000,${lat},${lon});
+      way["landuse"="residential"](around:5000,${lat},${lon});
       way["natural"="sand"](around:5000,${lat},${lon});
+      way["natural"="scrub"](around:5000,${lat},${lon});
       way["natural"="bare_rock"](around:5000,${lat},${lon});
     );
     out center;
@@ -46,36 +45,44 @@ async function getZones(lat, lon) {
       query,
       { headers: { "Content-Type": "text/plain" } }
     );
-
     return res.data.elements || [];
   } catch (err) {
-    console.log("OSM error:", err.message);
+    console.error("OSM error:", err.message);
     return [];
   }
 }
 
 /* -----------------------------
-   تصنيف المنطقة
+   تصنيف مستوى الخطورة
 ----------------------------- */
 function classify(tags = {}) {
-  if (tags.landuse === "grass")
-    return { level: "🟢 مناسب", note: "أرض مفتوحة" };
-
-  if (tags.landuse === "industrial")
-    return { level: "🟡 متوسط", note: "منطقة صناعية - انتبه" };
-
+  // مناطق آمنة
+  if (tags.landuse === "grass" || tags.landuse === "meadow")
+    return { level: "🟢 آمن", note: "منطقة عشبية مفتوحة ومسطحة." };
+  
+  // مناطق متوسطة
   if (tags.natural === "sand")
-    return { level: "🟡 رملي", note: "أرض رملية - تحقق بصري" };
+    return { level: "🟡 متوسط", note: "أرض رملية - قد تعيق الهبوط السلس." };
+  if (tags.natural === "scrub")
+    return { level: "🟡 متوسط", note: "منطقة شجيرات - تحقق من الارتفاع." };
 
-  return { level: "🔴 خطير", note: "غير معروف - احتمال عوائق" };
+  // مناطق خطرة
+  if (tags.landuse === "industrial")
+    return { level: "🔴 خطر", note: "منطقة صناعية - عوائق وهياكل معدنية." };
+  if (tags.landuse === "residential")
+    return { level: "🔴 خطر", note: "منطقة سكنية - ازدحام ومباني." };
+
+  return { level: "⚪ غير محدد", note: "بيانات غير كافية - يلزم الاستطلاع البصري." };
 }
 
 /* -----------------------------
-   BOT
+   التعامل مع الرسائل
 ----------------------------- */
 bot.on("location", async (msg) => {
   const chatId = msg.chat.id;
   const { latitude, longitude } = msg.location;
+
+  await bot.sendMessage(chatId, "🔎 جاري البحث عن أقرب مواقع الهبوط وتقييمها...");
 
   const data = await getZones(latitude, longitude);
 
@@ -84,7 +91,6 @@ bot.on("location", async (msg) => {
     .map((p) => {
       const lat = p.center.lat;
       const lon = p.center.lon;
-
       return {
         lat,
         lon,
@@ -95,49 +101,36 @@ bot.on("location", async (msg) => {
     .sort((a, b) => a.distance - b.distance)
     .slice(0, 5);
 
-  /* -----------------------------
-     Fallback لو ما فيه بيانات
-  ----------------------------- */
   if (results.length === 0) {
-    results = [
-      {
-        lat: latitude + 0.01,
-        lon: longitude + 0.01,
-        distance: 1.2,
-        level: "⚠️ غير مؤكد",
-        note: "لا توجد بيانات دقيقة - تحقق بصري مطلوب",
-      },
-    ];
+    return bot.sendMessage(chatId, "⚠️ عذراً، لم أجد مواقع معروفة في نطاق 5 كم. يرجى توخي الحذر.");
   }
 
-  let text = "🚁 تقرير مناطق الهبوط:\n\n";
+  let text = "🚁 **تقرير تحليل مواقع الهبوط القريبة:**\n\n";
+  const keyboard = [];
 
   results.forEach((p, i) => {
-    text += `${i + 1}- ${p.distance.toFixed(2)} كم\n`;
-    text += `${p.level}\n`;
-    text += `${p.note}\n\n`;
+    text += `📍 **الموقع ${i + 1}**\n`;
+    text += `📏 المسافة: ${p.distance.toFixed(2)} كم\n`;
+    text += `🛡 الحالة: ${p.level}\n`;
+    text += `📝 ملاحظة: ${p.note}\n`;
+    text += `───────────────\n`;
+
+    keyboard.push([{
+      text: `🗺 فتح الموقع ${i + 1} على قوقل ماب`,
+      url: `https://www.google.com/maps?q=${p.lat},${p.lon}`
+    }]);
   });
 
-  const keyboard = results.map((p) => [
-    {
-      text: "🗺 عرض الخريطة",
-      url: `https://www.google.com/maps?q=${p.lat},${p.lon}`,
-    },
-  ]);
-
   await bot.sendMessage(chatId, text, {
+    parse_mode: "Markdown",
     reply_markup: { inline_keyboard: keyboard },
   });
 });
 
 /* -----------------------------
-   سيرفر Render
+   سيرفر الويب لـ Render
 ----------------------------- */
 const app = express();
-
-app.get("/", (req, res) => {
-  res.send("Heli Bot Running 🚁");
-});
-
+app.get("/", (req, res) => res.send("Heli-Safe Bot is Active 🚁"));
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log("Running on " + PORT));
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

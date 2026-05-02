@@ -2,6 +2,7 @@ import TelegramBot from 'node-telegram-bot-api';
 import express from 'express';
 import fs from 'fs';
 import path from 'path';
+import fetch from 'node-fetch';
 
 // توكن البوت
 const TELEGRAM_TOKEN = '8657045334:AAH8m28orGYTz5VEfV4MyHcR1pLWiu5kGJE';
@@ -9,75 +10,116 @@ const TELEGRAM_TOKEN = '8657045334:AAH8m28orGYTz5VEfV4MyHcR1pLWiu5kGJE';
 // إنشاء البوت
 const bot = new TelegramBot(TELEGRAM_TOKEN, { polling: true });
 
-// قراءة بيانات المواقع من الملف
+// قراءة ملف المواقع
 const dataPath = path.join(process.cwd(), 'saudi_heliports.json');
 const heliports = JSON.parse(fs.readFileSync(dataPath, 'utf-8'));
 
-// دالة لحساب المسافة بين نقطتين (كيلومتر)
+// دالة حساب المسافة
 function getDistance(lat1, lon1, lat2, lon2) {
-  const R = 6371; // نصف قطر الأرض بالكيلومتر
+  const R = 6371;
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLon = (lon2 - lon1) * Math.PI / 180;
+
   const a =
     Math.sin(dLat / 2) ** 2 +
     Math.cos(lat1 * Math.PI / 180) *
       Math.cos(lat2 * Math.PI / 180) *
       Math.sin(dLon / 2) ** 2;
+
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 }
 
-// استقبال الموقع من المستخدم
+// استقبال الموقع
 bot.on('location', async (msg) => {
-  const chatId = msg.chat.id;
-  const { latitude, longitude } = msg.location;
+  try {
+    const chatId = msg.chat.id;
+    const { latitude, longitude } = msg.location;
 
-  // فلترة المواقع داخل نفس المدينة باستخدام أقرب 5
-  // نبحث المدينة الأقرب من المواقع الموجودة
-  const cityDistances = {};
+    // تحليل المباني (هل المكان مزدحم أو فاضي)
+    let buildings = 0;
 
-  heliports.forEach(h => {
-    const dist = getDistance(latitude, longitude, h.lat, h.lon);
-    if (!cityDistances[h.city] || cityDistances[h.city] > dist) {
-      cityDistances[h.city] = dist;
+    try {
+      const url = `https://overpass-api.de/api/interpreter?data=[out:json];node(around:100,${latitude},${longitude})["building"];out;`;
+      const res = await fetch(url);
+      const data = await res.json();
+      buildings = data.elements.length;
+    } catch (err) {
+      console.log('OSM Error:', err.message);
     }
-  });
 
-  // نأخذ أقرب مدينة
-  const closestCity = Object.keys(cityDistances).reduce((a, b) => cityDistances[a] < cityDistances[b] ? a : b);
+    // تقييم الأمان
+    let safety = '';
+    let notes = '';
+    let risks = '';
 
-  // فلترة المواقع حسب المدينة
-  const cityHeliports = heliports
-    .filter(h => h.city === closestCity)
-    .map(h => ({ ...h, distance: getDistance(latitude, longitude, h.lat, h.lon) }))
-    .sort((a, b) => a.distance - b.distance)
-    .slice(0, 5); // أقرب 5 فقط
+    if (buildings === 0) {
+      safety = '🟢 SAFE';
+      notes = 'Open area, suitable for landing';
+      risks = 'Possible wind or sand';
+    } else if (buildings < 10) {
+      safety = '🟡 MEDIUM';
+      notes = 'Some obstacles nearby';
+      risks = 'Buildings, cars, wires';
+    } else {
+      safety = '🔴 DANGEROUS';
+      notes = 'Dense urban area';
+      risks = 'High collision risk';
+    }
 
-  if(cityHeliports.length === 0) {
-    await bot.sendMessage(chatId, `لم يتم العثور على أماكن هبوط في ${closestCity}`);
-    return;
+    // أقرب مواقع (بدون مدن ثانية)
+    const nearby = heliports
+      .map(h => ({
+        ...h,
+        distance: getDistance(latitude, longitude, h.lat, h.lon)
+      }))
+      .sort((a, b) => a.distance - b.distance)
+      .slice(0, 5);
+
+    if (nearby.length === 0) {
+      await bot.sendMessage(chatId, 'No nearby landing spots found');
+      return;
+    }
+
+    // الرسالة
+    let reply = `🚁 Landing Analysis\n\n`;
+    reply += `Safety: ${safety}\n`;
+    reply += `Notes: ${notes}\n`;
+    reply += `Risks: ${risks}\n\n`;
+
+    reply += `Nearest Landing Spots:\n`;
+    nearby.forEach((h, i) => {
+      reply += `${i + 1}- ${h.name} (${h.city}) — ${h.distance.toFixed(2)} km\n`;
+    });
+
+    // زر القمر الصناعي
+    const keyboard = [
+      [
+        {
+          text: '🛰️ View Satellite',
+          url: `https://www.google.com/maps?q=${latitude},${longitude}&t=k`
+        }
+      ]
+    ];
+
+    await bot.sendMessage(chatId, reply, {
+      reply_markup: { inline_keyboard: keyboard }
+    });
+
+  } catch (err) {
+    console.log('ERROR:', err.message);
   }
-
-  // رسالة نصية مع أسماء المواقع والمسافة
-  let reply = `أقرب مواقع الهبوط في ${closestCity}:\n`;
-  cityHeliports.forEach((h, i) => {
-    reply += `${i + 1}- ${h.name} — المسافة: ${h.distance.toFixed(2)} كم\n`;
-  });
-
-  // أزرار لفتح المواقع على OpenStreetMap
-  const inlineKeyboard = cityHeliports.map(h => ([{
-    text: `افتح ${h.name}`,
-    url: `https://www.openstreetmap.org/?mlat=${h.lat}&mlon=${h.lon}&zoom=16`
-  }]));
-
-  // إرسال النص + الأزرار
-  await bot.sendMessage(chatId, reply, {
-    reply_markup: { inline_keyboard: inlineKeyboard }
-  });
 });
 
-// ويب سيرفر للتجارب أو Render
+// سيرفر Render
 const app = express();
-app.get('/', (req,res) => res.send('Helicopter Telegram Bot Running'));
+
+app.get('/', (req, res) => {
+  res.send('Bot is running');
+});
+
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log('Server running on port ' + PORT));
+
+app.listen(PORT, () => {
+  console.log('Server running on port ' + PORT);
+});

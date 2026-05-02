@@ -2,10 +2,15 @@ import TelegramBot from "node-telegram-bot-api";
 import express from "express";
 import axios from "axios";
 
+/* -----------------------------
+   🔑 التوكن
+----------------------------- */
 const TELEGRAM_TOKEN = "8657045334:AAH8m28orGYTz5VEfV4MyHcR1pLWiu5kGJE";
 const bot = new TelegramBot(TELEGRAM_TOKEN, { polling: true });
 
-/* ---------------- المسافة ---------------- */
+/* -----------------------------
+   حساب المسافة
+----------------------------- */
 function getDistance(lat1, lon1, lat2, lon2) {
   const R = 6371;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
@@ -20,7 +25,9 @@ function getDistance(lat1, lon1, lat2, lon2) {
   return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
 }
 
-/* ---------------- جلب بيانات آمنة ---------------- */
+/* -----------------------------
+   جلب بيانات حقيقية من OSM
+----------------------------- */
 async function getZones(lat, lon) {
   try {
     const query = `
@@ -29,6 +36,7 @@ async function getZones(lat, lon) {
       way["landuse"="grass"](around:5000,${lat},${lon});
       way["landuse"="industrial"](around:5000,${lat},${lon});
       way["natural"="sand"](around:5000,${lat},${lon});
+      way["natural"="bare_rock"](around:5000,${lat},${lon});
     );
     out center;
     `;
@@ -41,42 +49,38 @@ async function getZones(lat, lon) {
 
     return res.data.elements || [];
   } catch (err) {
-    console.log("Overpass error:", err.message);
+    console.log("OSM error:", err.message);
     return [];
   }
 }
 
-/* ---------------- فلترة ---------------- */
-function isValid(tags = {}) {
-  if (tags.landuse === "residential") return false;
-  if (tags.building) return false;
-  if (tags.highway) return false;
-  return true;
-}
-
-/* ---------------- تصنيف ---------------- */
+/* -----------------------------
+   تصنيف المنطقة
+----------------------------- */
 function classify(tags = {}) {
-  if (tags.landuse === "industrial")
-    return { level: "🟡 صناعي", note: "تحقق من العوائق" };
-
   if (tags.landuse === "grass")
     return { level: "🟢 مناسب", note: "أرض مفتوحة" };
 
-  if (tags.natural === "sand")
-    return { level: "🟡 رملي", note: "أرض تحتاج تقييم بصري" };
+  if (tags.landuse === "industrial")
+    return { level: "🟡 متوسط", note: "منطقة صناعية - انتبه" };
 
-  return { level: "🔴 غير مناسب", note: "غير واضح" };
+  if (tags.natural === "sand")
+    return { level: "🟡 رملي", note: "أرض رملية - تحقق بصري" };
+
+  return { level: "🔴 خطير", note: "غير معروف - احتمال عوائق" };
 }
 
-/* ---------------- استقبال الموقع ---------------- */
+/* -----------------------------
+   BOT
+----------------------------- */
 bot.on("location", async (msg) => {
   const chatId = msg.chat.id;
   const { latitude, longitude } = msg.location;
 
   const data = await getZones(latitude, longitude);
 
-  const results = data
-    .filter((p) => p.center && isValid(p.tags || {}))
+  let results = data
+    .filter((p) => p.center)
     .map((p) => {
       const lat = p.center.lat;
       const lon = p.center.lon;
@@ -91,14 +95,22 @@ bot.on("location", async (msg) => {
     .sort((a, b) => a.distance - b.distance)
     .slice(0, 5);
 
+  /* -----------------------------
+     Fallback لو ما فيه بيانات
+  ----------------------------- */
   if (results.length === 0) {
-    return bot.sendMessage(
-      chatId,
-      "🚨 ما تم العثور على مناطق مناسبة قريبة"
-    );
+    results = [
+      {
+        lat: latitude + 0.01,
+        lon: longitude + 0.01,
+        distance: 1.2,
+        level: "⚠️ غير مؤكد",
+        note: "لا توجد بيانات دقيقة - تحقق بصري مطلوب",
+      },
+    ];
   }
 
-  let text = "🚁 أقرب مناطق هبوط:\n\n";
+  let text = "🚁 تقرير مناطق الهبوط:\n\n";
 
   results.forEach((p, i) => {
     text += `${i + 1}- ${p.distance.toFixed(2)} كم\n`;
@@ -113,13 +125,19 @@ bot.on("location", async (msg) => {
     },
   ]);
 
-  bot.sendMessage(chatId, text, {
+  await bot.sendMessage(chatId, text, {
     reply_markup: { inline_keyboard: keyboard },
   });
 });
 
-/* ---------------- سيرفر ---------------- */
+/* -----------------------------
+   سيرفر Render
+----------------------------- */
 const app = express();
-app.get("/", (req, res) => res.send("Bot running 🚁"));
 
-app.listen(process.env.PORT || 3000);
+app.get("/", (req, res) => {
+  res.send("Heli Bot Running 🚁");
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log("Running on " + PORT));

@@ -3,13 +3,13 @@ import express from "express";
 import axios from "axios";
 
 /* -----------------------------
-   🔑 توكن البوت
+   🔑 التوكن (حاطه لك مباشرة)
 ----------------------------- */
 const TELEGRAM_TOKEN = "8657045334:AAH8m28orGYTz5VEfV4MyHcR1pLWiu5kGJE";
 const bot = new TelegramBot(TELEGRAM_TOKEN, { polling: true });
 
 /* -----------------------------
-   حساب المسافة
+   المسافة
 ----------------------------- */
 function getDistance(lat1, lon1, lat2, lon2) {
   const R = 6371;
@@ -26,33 +26,38 @@ function getDistance(lat1, lon1, lat2, lon2) {
 }
 
 /* -----------------------------
-   جلب أراضي حقيقية من OSM
+   جلب أراضي حقيقية
 ----------------------------- */
-async function getRealZones(lat, lon) {
-  const query = `
-  [out:json];
-  (
-    way["landuse"="grass"](around:5000,${lat},${lon});
-    way["landuse"="industrial"](around:5000,${lat},${lon});
-    way["natural"="sand"](around:5000,${lat},${lon});
-    way["natural"="bare_rock"](around:5000,${lat},${lon});
-  );
-  out center;
-  `;
+async function getZones(lat, lon) {
+  try {
+    const query = `
+    [out:json];
+    (
+      way["landuse"="grass"](around:5000,${lat},${lon});
+      way["landuse"="industrial"](around:5000,${lat},${lon});
+      way["natural"="sand"](around:5000,${lat},${lon});
+      way["natural"="bare_rock"](around:5000,${lat},${lon});
+    );
+    out center;
+    `;
 
-  const res = await axios.post(
-    "https://overpass-api.de/api/interpreter",
-    query,
-    { headers: { "Content-Type": "text/plain" } }
-  );
+    const res = await axios.post(
+      "https://overpass-api.de/api/interpreter",
+      query,
+      { headers: { "Content-Type": "text/plain" } }
+    );
 
-  return res.data.elements || [];
+    return res.data.elements || [];
+  } catch (e) {
+    console.log("Overpass error:", e.message);
+    return [];
+  }
 }
 
 /* -----------------------------
-   فلترة مناطق غير مناسبة
+   فلترة
 ----------------------------- */
-function isSafe(tags = {}) {
+function safe(tags = {}) {
   if (tags.landuse === "residential") return false;
   if (tags.building) return false;
   if (tags.highway) return false;
@@ -60,34 +65,35 @@ function isSafe(tags = {}) {
 }
 
 /* -----------------------------
-   تقييم عربي
+   تصنيف عربي
 ----------------------------- */
 function classify(tags = {}) {
   if (tags.landuse === "industrial")
-    return { level: "🟡 متوسط", note: "منطقة صناعية - تحقق قبل الهبوط" };
+    return { level: "🟡 متوسط", note: "صناعي - تحقق قبل الهبوط" };
 
   if (tags.landuse === "grass")
-    return { level: "🟢 مناسب", note: "أرض مفتوحة نسبياً" };
+    return { level: "🟢 مناسب", note: "أرض مفتوحة" };
 
   if (tags.natural === "sand")
-    return { level: "🟡 صحراوي", note: "أرض رملية تحتاج تقييم بصري" };
+    return { level: "🟡 رملي", note: "تأكد من ثبات الأرض" };
 
-  return { level: "🔴 غير مناسب", note: "منطقة غير واضحة" };
+  return { level: "🔴 غير مناسب", note: "غير واضح" };
 }
 
 /* -----------------------------
-   استقبال موقع المستخدم
+   استقبال الموقع
 ----------------------------- */
 bot.on("location", async (msg) => {
   const chatId = msg.chat.id;
   const { latitude, longitude } = msg.location;
 
-  const data = await getRealZones(latitude, longitude);
+  const data = await getZones(latitude, longitude);
 
   const results = data
-    .filter((p) => isSafe(p.tags || {}))
-    .slice(0, 5)
+    .filter((p) => safe(p.tags || {}))
     .map((p) => {
+      if (!p.center) return null;
+
       const lat = p.center.lat;
       const lon = p.center.lon;
 
@@ -98,31 +104,30 @@ bot.on("location", async (msg) => {
         ...classify(p.tags || {}),
       };
     })
-    .sort((a, b) => a.distance - b.distance);
+    .filter(Boolean)
+    .sort((a, b) => a.distance - b.distance)
+    .slice(0, 5);
 
   if (!results.length) {
-    return bot.sendMessage(
-      chatId,
-      "🚨 ما تم العثور على مناطق مناسبة قريبة"
-    );
+    return bot.sendMessage(chatId, "🚨 لا توجد مناطق مناسبة قريبة");
   }
 
-  let reply = "🚁 أقرب مناطق هبوط محتملة (تحليل أرضي):\n\n";
+  let msgText = "🚁 أقرب مناطق هبوط:\n\n";
 
   results.forEach((p, i) => {
-    reply += `${i + 1}- ${p.distance.toFixed(2)} كم\n`;
-    reply += `${p.level}\n`;
-    reply += `${p.note}\n\n`;
+    msgText += `${i + 1}- ${p.distance.toFixed(2)} كم\n`;
+    msgText += `${p.level}\n`;
+    msgText += `${p.note}\n\n`;
   });
 
   const keyboard = results.map((p) => [
     {
-      text: "🗺 عرض على الخريطة",
+      text: "🗺 عرض",
       url: `https://www.google.com/maps?q=${p.lat},${p.lon}`,
     },
   ]);
 
-  await bot.sendMessage(chatId, reply, {
+  bot.sendMessage(chatId, msgText, {
     reply_markup: { inline_keyboard: keyboard },
   });
 });
@@ -132,10 +137,6 @@ bot.on("location", async (msg) => {
 ----------------------------- */
 const app = express();
 
-app.get("/", (req, res) => {
-  res.send("Bot is running 🚁");
-});
+app.get("/", (req, res) => res.send("Bot running 🚁"));
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log("Running on port " + PORT));
-       
+app.listen(process.env.PORT || 3000);

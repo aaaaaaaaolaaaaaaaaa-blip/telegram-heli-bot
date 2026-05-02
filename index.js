@@ -2,15 +2,10 @@ import TelegramBot from "node-telegram-bot-api";
 import express from "express";
 import axios from "axios";
 
-/* -----------------------------
-   🔑 التوكن (حاطه لك مباشرة)
------------------------------ */
 const TELEGRAM_TOKEN = "8657045334:AAH8m28orGYTz5VEfV4MyHcR1pLWiu5kGJE";
 const bot = new TelegramBot(TELEGRAM_TOKEN, { polling: true });
 
-/* -----------------------------
-   المسافة
------------------------------ */
+/* ---------------- المسافة ---------------- */
 function getDistance(lat1, lon1, lat2, lon2) {
   const R = 6371;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
@@ -25,9 +20,7 @@ function getDistance(lat1, lon1, lat2, lon2) {
   return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
 }
 
-/* -----------------------------
-   جلب أراضي حقيقية
------------------------------ */
+/* ---------------- جلب بيانات آمنة ---------------- */
 async function getZones(lat, lon) {
   try {
     const query = `
@@ -36,7 +29,6 @@ async function getZones(lat, lon) {
       way["landuse"="grass"](around:5000,${lat},${lon});
       way["landuse"="industrial"](around:5000,${lat},${lon});
       way["natural"="sand"](around:5000,${lat},${lon});
-      way["natural"="bare_rock"](around:5000,${lat},${lon});
     );
     out center;
     `;
@@ -48,41 +40,35 @@ async function getZones(lat, lon) {
     );
 
     return res.data.elements || [];
-  } catch (e) {
-    console.log("Overpass error:", e.message);
+  } catch (err) {
+    console.log("Overpass error:", err.message);
     return [];
   }
 }
 
-/* -----------------------------
-   فلترة
------------------------------ */
-function safe(tags = {}) {
+/* ---------------- فلترة ---------------- */
+function isValid(tags = {}) {
   if (tags.landuse === "residential") return false;
   if (tags.building) return false;
   if (tags.highway) return false;
   return true;
 }
 
-/* -----------------------------
-   تصنيف عربي
------------------------------ */
+/* ---------------- تصنيف ---------------- */
 function classify(tags = {}) {
   if (tags.landuse === "industrial")
-    return { level: "🟡 متوسط", note: "صناعي - تحقق قبل الهبوط" };
+    return { level: "🟡 صناعي", note: "تحقق من العوائق" };
 
   if (tags.landuse === "grass")
     return { level: "🟢 مناسب", note: "أرض مفتوحة" };
 
   if (tags.natural === "sand")
-    return { level: "🟡 رملي", note: "تأكد من ثبات الأرض" };
+    return { level: "🟡 رملي", note: "أرض تحتاج تقييم بصري" };
 
   return { level: "🔴 غير مناسب", note: "غير واضح" };
 }
 
-/* -----------------------------
-   استقبال الموقع
------------------------------ */
+/* ---------------- استقبال الموقع ---------------- */
 bot.on("location", async (msg) => {
   const chatId = msg.chat.id;
   const { latitude, longitude } = msg.location;
@@ -90,10 +76,8 @@ bot.on("location", async (msg) => {
   const data = await getZones(latitude, longitude);
 
   const results = data
-    .filter((p) => safe(p.tags || {}))
+    .filter((p) => p.center && isValid(p.tags || {}))
     .map((p) => {
-      if (!p.center) return null;
-
       const lat = p.center.lat;
       const lon = p.center.lon;
 
@@ -104,39 +88,38 @@ bot.on("location", async (msg) => {
         ...classify(p.tags || {}),
       };
     })
-    .filter(Boolean)
     .sort((a, b) => a.distance - b.distance)
     .slice(0, 5);
 
-  if (!results.length) {
-    return bot.sendMessage(chatId, "🚨 لا توجد مناطق مناسبة قريبة");
+  if (results.length === 0) {
+    return bot.sendMessage(
+      chatId,
+      "🚨 ما تم العثور على مناطق مناسبة قريبة"
+    );
   }
 
-  let msgText = "🚁 أقرب مناطق هبوط:\n\n";
+  let text = "🚁 أقرب مناطق هبوط:\n\n";
 
   results.forEach((p, i) => {
-    msgText += `${i + 1}- ${p.distance.toFixed(2)} كم\n`;
-    msgText += `${p.level}\n`;
-    msgText += `${p.note}\n\n`;
+    text += `${i + 1}- ${p.distance.toFixed(2)} كم\n`;
+    text += `${p.level}\n`;
+    text += `${p.note}\n\n`;
   });
 
   const keyboard = results.map((p) => [
     {
-      text: "🗺 عرض",
+      text: "🗺 عرض الخريطة",
       url: `https://www.google.com/maps?q=${p.lat},${p.lon}`,
     },
   ]);
 
-  bot.sendMessage(chatId, msgText, {
+  bot.sendMessage(chatId, text, {
     reply_markup: { inline_keyboard: keyboard },
   });
 });
 
-/* -----------------------------
-   سيرفر Render
------------------------------ */
+/* ---------------- سيرفر ---------------- */
 const app = express();
-
 app.get("/", (req, res) => res.send("Bot running 🚁"));
 
 app.listen(process.env.PORT || 3000);

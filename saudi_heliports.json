@@ -1,35 +1,37 @@
 [
   {
-    "city": "Jeddah",
-    "name": "King Abdulaziz International Airport Helipad",
-    "lat": 21.6705,
-    "lon": 39.1523,
-    "type": "airport",
-    "terrain": "open"
-  },
-  {
-    "city": "Jeddah",
-    "name": "Jeddah Corniche Helipad",
-    "lat": 21.5381,
-    "lon": 39.1719,
-    "type": "coastal",
-    "terrain": "windy"
-  },
-  {
-    "city": "Makkah",
-    "name": "Makkah Central Helipad",
-    "lat": 21.3891,
-    "lon": 39.8579,
-    "type": "urban_rooftop",
-    "terrain": "urban"
+    "city": "Riyadh",
+    "name": "North Riyadh Open Desert",
+    "lat": 25.15,
+    "lon": 46.72,
+    "terrain": "sand"
   },
   {
     "city": "Riyadh",
-    "name": "King Khalid International Airport Helipad",
-    "lat": 24.9576,
-    "lon": 46.6984,
-    "type": "airport",
-    "terrain": "open"
+    "name": "Rocky Plateau Riyadh Outskirts",
+    "lat": 24.98,
+    "lon": 46.60,
+    "terrain": "rocky"
+  },
+  {
+    "city": "Jeddah",
+    "name": "Eastern Jeddah Open Area",
+    "lat": 21.62,
+    "lon": 39.25,
+    "terrain": "open_land"
+  },
+  {
+    "city": "Makkah",
+    "name": "Makkah Mountain Edge Zone",
+    "lat": 21.35,
+    "lon": 39.75,
+    "terrain": "rocky"
+  },
+  {
+    "city": "Madinah",
+    "name": "Northern Madinah Open Ground",
+    "lat": 24.65,
+    "lon": 39.55,
+    "terrain": "open_land"
   }
 ]
- 

@@ -3,23 +3,21 @@ import express from 'express';
 import fs from 'fs';
 import path from 'path';
 
-// 🔴 توكن البوت (حطه هنا)
+// 🔑 التوكن
 const TELEGRAM_TOKEN = '8657045334:AAH8m28orGYTz5VEfV4MyHcR1pLWiu5kGJE';
 
+// بوت
 const bot = new TelegramBot(TELEGRAM_TOKEN, { polling: true });
 
-// قراءة ملف المواقع
-const heliports = JSON.parse(
-  fs.readFileSync(path.join(process.cwd(), 'saudi_heliports.json'))
-);
+// بيانات المواقع
+const dataPath = path.join(process.cwd(), 'saudi_heliports.json');
+const heliports = JSON.parse(fs.readFileSync(dataPath, 'utf-8'));
 
-// حساب المسافة
+// 📏 حساب المسافة
 function getDistance(lat1, lon1, lat2, lon2) {
   const R = 6371;
-
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLon = (lon2 - lon1) * Math.PI / 180;
-
   const a =
     Math.sin(dLat / 2) ** 2 +
     Math.cos(lat1 * Math.PI / 180) *
@@ -29,85 +27,57 @@ function getDistance(lat1, lon1, lat2, lon2) {
   return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
 }
 
-// تحليل بسيط للتضاريس
+// 🧠 تقييم الأرض
 function analyzeTerrain(site) {
-  if (site.type === 'airport') {
-    return { status: 'safe', msg: '🟢 آمن - موقع مهيأ للهبوط' };
+  if (site.terrain === 'open_land') {
+    return '🟢 مناسب للهبوط (أرض مفتوحة)';
   }
-
-  if (site.type === 'urban_rooftop') {
-    return { status: 'danger', msg: '⚠️ خطر - منطقة مباني' };
+  if (site.terrain === 'rocky') {
+    return '🟡 أرض صخرية - تحتاج تقييم ميداني';
   }
-
-  if (site.type === 'coastal') {
-    return { status: 'caution', msg: '⚠️ رياح محتملة - منطقة ساحلية' };
+  if (site.terrain === 'sand') {
+    return '🔴 رمال - غير مستقرة';
   }
-
-  return { status: 'unknown', msg: '🟡 غير معروف - استخدم حذر' };
+  return '⚠️ غير معروف';
 }
 
-// أقرب مدينة
-function getClosestCity(lat, lon) {
-  let bestCity = null;
-  let bestDist = Infinity;
-
-  heliports.forEach(h => {
-    const d = getDistance(lat, lon, h.lat, h.lon);
-    if (d < bestDist) {
-      bestDist = d;
-      bestCity = h.city;
-    }
-  });
-
-  return bestCity;
-}
-
-// استقبال الموقع
+// 📍 استقبال الموقع
 bot.on('location', async (msg) => {
   const chatId = msg.chat.id;
   const { latitude, longitude } = msg.location;
 
-  const city = getClosestCity(latitude, longitude);
-
   const results = heliports
-    .filter(h => h.city === city)
     .map(h => ({
       ...h,
-      distance: getDistance(latitude, longitude, h.lat, h.lon),
-      analysis: analyzeTerrain(h)
+      distance: getDistance(latitude, longitude, h.lat, h.lon)
     }))
     .sort((a, b) => a.distance - b.distance)
     .slice(0, 5);
 
-  if (!results.length) {
-    return bot.sendMessage(chatId, 'ما تم العثور على مواقع قريبة.');
+  if (results.length === 0) {
+    return bot.sendMessage(chatId, 'ما فيه مناطق قريبة.');
   }
 
-  let reply = `📍 أقرب مواقع الهبوط في ${city}:\n\n`;
+  let reply = `📍 أقرب مناطق مناسبة للهبوط:\n\n`;
 
-  results.forEach((r, i) => {
-    reply += `${i + 1}- ${r.name}\n`;
-    reply += `📏 ${r.distance.toFixed(2)} كم\n`;
-    reply += `${r.analysis.msg}\n\n`;
+  results.forEach((h, i) => {
+    reply += `${i + 1}- ${h.name}
+📏 ${h.distance.toFixed(2)} كم
+${analyzeTerrain(h)}\n\n`;
   });
 
-  const keyboard = results.map(r => ([{
-    text: `فتح ${r.name}`,
-    url: `https://www.openstreetmap.org/?mlat=${r.lat}&mlon=${r.lon}&zoom=16`
+  const buttons = results.map(h => ([{
+    text: `فتح ${h.name}`,
+    url: `https://www.openstreetmap.org/?mlat=${h.lat}&mlon=${h.lon}&zoom=15`
   }]));
 
   await bot.sendMessage(chatId, reply, {
-    reply_markup: { inline_keyboard: keyboard }
+    reply_markup: { inline_keyboard: buttons }
   });
 });
 
-// سيرفر Render
+// 🌐 سيرفر Render
 const app = express();
-
-app.get('/', (req, res) => {
-  res.send('Heli Bot Running 🚁');
-});
-
-app.listen(process.env.PORT || 3000, () => {
-  console.log('Server running');
-});
+app.get('/', (req, res) => res.send('Bot Running'));
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log('Running on ' + PORT));

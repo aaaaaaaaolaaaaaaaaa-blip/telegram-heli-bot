@@ -3,7 +3,6 @@ import express from "express";
 import axios from "axios";
 import fs from "fs";
 
-// التوكن الخاص بكِ
 const token = "8657045334:AAH8m28orGYTz5VEfV4MyHcR1pLWiu5kGJE";
 const bot = new TelegramBot(token, { polling: true });
 
@@ -24,58 +23,49 @@ function calcDist(lat1, lon1, lat2, lon2) {
 }
 
 function analyzeGround(lat, lon, tags = {}, manualType = "") {
+    // --- منطقة الحظر (Blacklist) ---
+    // تم حذف المنطقة المطلوبة (21.3210, 39.2740) وأي إحداثيات قريبة جداً منها
+    const blockLat = 21.3210;
+    const blockLon = 39.2740;
+    if (calcDist(lat, lon, blockLat, blockLon) < 0.5) return { valid: false }; 
+    // -------------------------------
+
     const type = (manualType || tags.natural || tags.landuse || "").toLowerCase();
 
     if (tags.natural === "water" || tags.building || tags.highway) return { valid: false };
 
-    // فحص الجبال (شرق جدة)
     if (lon > 39.22) {
-        return { 
-            level: "🔴 خطر: منطقة جبلية وعرة", 
-            note: "الأرض صخرية وغير مستوية، لا تصلح للهبوط.", 
-            valid: true 
-        };
+        return { level: "🔴 خطر: منطقة جبلية وعرة", note: "الأرض صخرية وغير مستوية، لا تصلح للهبوط.", valid: true };
     }
 
-    // فحص الرمال
     if (type.includes("sand") || type.includes("scrub") || type === "desert") {
-        return { 
-            level: "🟡 متوسط: منطقة رملية", 
-            note: "أرض مستوية بوضوح لكن التربة رملية (احتمالية غوص القوائم).", 
-            valid: true 
-        };
+        return { level: "🟡 متوسط: منطقة رملية", note: "أرض مستوية بوضوح لكن التربة رملية.", valid: true };
     }
 
-    // الأرض المستوية
-    return { 
-        level: "🟢 آمن: أرض مستوية", 
-        note: "أرض فضاء منبسطة تماماً وبعيدة عن العوائق.", 
-        valid: true 
-    };
+    return { level: "🟢 آمن: أرض مستوية", note: "أرض فضاء منبسطة تماماً وبعيدة عن العوائق.", valid: true };
 }
 
 bot.on("location", async (msg) => {
     const { latitude, longitude } = msg.location;
     const chatId = msg.chat.id;
 
-    // الرسالة المطلوبة: جاري فحص الرادار فقط
     await bot.sendMessage(chatId, "🔍 جاري فحص الرادار...");
 
     let allPoints = [];
 
-    // نقاط الملف المحلي
     localSpots.forEach(s => {
         const analysis = analyzeGround(s.lat, s.lon, {}, s.type);
-        allPoints.push({
-            name: s.name,
-            lat: s.lat,
-            lon: s.lon,
-            dist: calcDist(latitude, longitude, s.lat, s.lon),
-            ...analysis
-        });
+        if (analysis.valid) {
+            allPoints.push({
+                name: s.name,
+                lat: s.lat,
+                lon: s.lon,
+                dist: calcDist(latitude, longitude, s.lat, s.lon),
+                ...analysis
+            });
+        }
     });
 
-    // جلب بيانات الخريطة
     try {
         const query = `[out:json][timeout:15];(way(around:15000,${latitude},${longitude})["landuse"~"brownfield|greenfield"];node(around:15000,${latitude},${longitude})["natural"~"sand|scrub"];);out center;`;
         const res = await axios.get(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`);
@@ -114,5 +104,4 @@ bot.on("location", async (msg) => {
 });
 
 const app = express();
-app.get('/', (req, res) => res.send('Bot is Running!'));
 app.listen(process.env.PORT || 3000);

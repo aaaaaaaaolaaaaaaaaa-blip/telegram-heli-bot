@@ -1,5 +1,5 @@
 {
-  "name": "heli-safety-check",
+  "name": "heli-safe-app",
   "version": "1.0.0",
   "type": "module",
   "main": "index.js",

@@ -17,26 +17,34 @@ function calcDist(lat1, lon1, lat2, lon2) {
 }
 
 function analyzeGround(tags = {}, manualType = "") {
-    // استبعاد البحار والمباني والطرق
-    if (tags.natural === "water" || tags.bay || tags.coastline) return { valid: false };
+    // استبعاد مطلق للمباني، الطرق، والبحار
+    if (tags.natural === "water" || tags.coastline) return { valid: false };
     const forbidden = ['highway', 'building', 'residential', 'apartments', 'street'];
     for (let key of forbidden) { if (tags[key] || tags.landuse === 'residential') return { valid: false }; }
 
-    const surface = tags.surface || "";
-    const natural = tags.natural || manualType || "";
+    const type = manualType || tags.natural || tags.landuse || "";
     
-    if (natural.includes("rock") || surface.includes("rock") || surface.includes("stones") || natural === "rough") {
-        return { level: "🔴 جبلية/صخرية", note: "أرض وعرة بها عوائق صلبة وصخور", risk: "عالي", valid: true };
+    // تصنيف الجبال (حتى لو كانت خالية فهي خطر)
+    if (type.includes("rough") || type.includes("rock") || type.includes("peak") || type.includes("cliff")) {
+        return { level: "🔴 خطر جداً (جبلي)", note: "أرض وعرة جداً، صخور حادة ومنحدرات. لا تصلح للهبوط.", risk: "حرج", valid: true };
     }
-    if (natural.includes("sand") || surface.includes("sand")) {
-        return { level: "🟡 صحراوية/رملية", note: "تربة رملية ناعمة (تأكد من الثبات)", risk: "متوسط", valid: true };
+    
+    // تصنيف الرمال
+    if (type.includes("sand") || type === "desert") {
+        return { level: "🟡 متوسط الخطورة (رملي)", note: "منطقة صحراوية، رمال قد تكون غير مستقرة.", risk: "متوسط", valid: true };
     }
-    return { level: "🟢 مستوية/فضاء", note: "أرض مفتوحة ومنبسطة خالية من المنشآت", risk: "منخفض", valid: true };
+
+    // تصنيف الأرض المستوية الفضاء
+    if (type === "open" || type === "brownfield" || type === "grass") {
+        return { level: "🟢 آمن (مستوٍ)", note: "أرض فضاء منبسطة خالية من العوائق والتضاريس الصعبة.", risk: "منخفض", valid: true };
+    }
+
+    return { level: "⚪ غير محدد", note: "منطقة تحتاج معاينة بصرية دقيقة.", risk: "مجهول", valid: true };
 }
 
 bot.on("location", async (msg) => {
     const { latitude, longitude } = msg.location;
-    await bot.sendMessage(msg.chat.id, "🛰️ جاري مسح المنطقة واستبعاد العوائق والطرق...");
+    await bot.sendMessage(msg.chat.id, "🔍 جاري تحليل تضاريس الأرض واستبعاد العوائق...");
 
     const myResults = localSpots.map(s => ({
         name: s.name, lat: s.lat, lon: s.lon,
@@ -60,13 +68,11 @@ bot.on("location", async (msg) => {
         .sort((a, b) => a.dist - b.dist)
         .slice(0, 5);
 
-    if (final.length === 0) return bot.sendMessage(msg.chat.id, "❌ لا توجد مناطق آمنة تماماً في هذا النطاق.");
-
-    let report = "🚁 **أقرب 5 مهابط طوارئ آمنة:**\n\n";
+    let report = "🚁 **نتائج تحليل مهابط الطوارئ:**\n\n";
     const buttons = [];
     final.forEach((p, i) => {
-        report += `${i+1}. **${p.name}**\n📍 المسافة: ${p.dist.toFixed(2)} كم\n🛡️ النوع: ${p.level}\n📝 ${p.note}\n───────────────\n`;
-        buttons.push([{ text: `📍 عرض موقع ${i+1} على Google Maps`, url: `https://www.google.com/maps?q=${p.lat},${p.lon}` }]);
+        report += `${i+1}. **${p.name}**\n📍 المسافة: ${p.dist.toFixed(2)} كم\n🛡️ التصنيف: ${p.level}\n📝 ${p.note}\n───────────────\n`;
+        buttons.push([{ text: `📍 تفقد الموقع ${i+1} على الخريطة`, url: `https://www.google.com/maps?q=${p.lat},${p.lon}` }]);
     });
 
     bot.sendMessage(msg.chat.id, report, { parse_mode: "Markdown", reply_markup: { inline_keyboard: buttons } });

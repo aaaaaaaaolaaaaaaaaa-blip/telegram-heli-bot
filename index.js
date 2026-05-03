@@ -3,17 +3,12 @@ import express from "express";
 import axios from "axios";
 import fs from "fs";
 
-// 🔑 التوكن الخاص بك
 const TELEGRAM_TOKEN = "8657045334:AAH8m28orGYTz5VEfV4MyHcR1pLWiu5kGJE";
 const bot = new TelegramBot(TELEGRAM_TOKEN, { polling: true });
 
-// 📄 تحميل البيانات المحلية
 let localSpots = [];
-try {
-    localSpots = JSON.parse(fs.readFileSync("./locations.json", "utf-8"));
-} catch (e) { console.error("خطأ في قراءة locations.json"); }
+try { localSpots = JSON.parse(fs.readFileSync("./locations.json", "utf-8")); } catch (e) {}
 
-// 📐 دالة حساب المسافة
 function calcDist(lat1, lon1, lat2, lon2) {
     const R = 6371;
     const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -22,70 +17,71 @@ function calcDist(lat1, lon1, lat2, lon2) {
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
 
-// 🛡️ نظام تحليل الخطورة والتربة
+// تحليل التربة والخطورة مع استبعاد العوائق
 function analyzeSpot(tags = {}, type = "") {
     let info = { level: "⚪ غير محدد", note: "أرض مجهولة", risk: "متوسط" };
-    
     const land = type || tags.natural || tags.landuse || "";
 
-    if (land.includes("open") || land === "grass") {
-        info = { level: "🟢 آمن", note: "أرض مستوية، تربة متماسكة (عشب/طين)", risk: "منخفض" };
+    if (tags.building && tags.building !== "no") {
+        return { level: "🚫 غير مسموح", note: "هذا موقع مبنى - خطر جداً", risk: "حرج" };
+    }
+
+    if (land.includes("open") || land === "grass" || land === "field") {
+        info = { level: "🟢 آمن", note: "أرض مسطحة تماماً (عشبية/فضاء)", risk: "منخفض" };
     } else if (land.includes("rough") || land === "bare_rock") {
-        info = { level: "🔴 خطر/وعر", note: "تضاريس جبلية صخرية، غير مستوية", risk: "عالي" };
+        info = { level: "🔴 خطر/وعر", note: "تضاريس صخرية غير مستوية", risk: "عالي" };
     } else if (land.includes("sand") || land === "desert") {
-        info = { level: "🟡 رملي", note: "كثبان رملية، تربة ناعمة قد تغرز", risk: "متوسط" };
-    } else if (land.includes("industrial")) {
-        info = { level: "🔴 خطر", note: "منطقة منشآت، عوائق وكابلات", risk: "عالي" };
+        info = { level: "🟡 رملي", note: "تربة رملية ناعمة (تحقق من ثبات الأرجل)", risk: "متوسط" };
     }
     return info;
 }
 
-// 🌐 جلب بيانات الخريطة مع استبعاد السكني (Residential)
 async function fetchSafeZones(lat, lon) {
     try {
-        const query = `[out:json][timeout:15];(way["natural"~"sand|bare_rock|scrub"](around:15000,${lat},${lon});way["landuse"~"grass|meadow"](around:15000,${lat},${lon}););out center;`;
+        // Query يطلب بوضوح استبعاد المباني والتركيز على الفراغات
+        const query = `[out:json][timeout:15];(way["natural"~"sand|bare_rock"](around:10000,${lat},${lon});way["landuse"~"grass|meadow|industrial"]["building"!~".*"](around:10000,${lat},${lon}););out center;`;
         const res = await axios.post("https://overpass-api.de/api/interpreter", query, { timeout: 10000 });
-        return (res.data.elements || []).filter(e => !e.tags.landuse?.includes("residential"));
+        // فلتر إضافي للتأكد من خلو الموقع من أي وسم "مبنى"
+        return (res.data.elements || []).filter(e => !e.tags.building);
     } catch (e) { return []; }
 }
 
-// 🚀 استقبال الموقع
 bot.on("location", async (msg) => {
     const chatId = msg.chat.id;
     const { latitude, longitude } = msg.location;
 
-    await bot.sendMessage(chatId, "🔍 جاري فحص الرادار وتحليل التضاريس المحيطة...");
+    await bot.sendMessage(chatId, "🛠 جاري مسح التضاريس واستبعاد المباني والعوائق...");
 
-    // 1. معالجة المواقع المحلية
     const myResults = localSpots.map(s => ({
-        name: s.name, lat: s.lat, lon: s.lon, elev: s.elev || "غير معروف",
+        name: s.name, lat: s.lat, lon: s.lon, elev: s.elev || "10m",
         dist: calcDist(latitude, longitude, s.lat, s.lon),
         ...analyzeSpot({}, s.type)
     }));
 
-    // 2. جلب ومعالجة مواقع الخريطة
     const osmData = await fetchSafeZones(latitude, longitude);
     const osmResults = osmData.map(e => ({
-        name: "موقع طبيعي مكتشف", lat: e.center.lat, lon: e.center.lon, elev: "بناءً على التضاريس",
+        name: "مساحة مفتوحة مكتشفة", lat: e.center.lat, lon: e.center.lon, elev: "متغير",
         dist: calcDist(latitude, longitude, e.center.lat, e.center.lon),
         ...analyzeSpot(e.tags)
     }));
 
-    // 3. الترتيب واختيار التوب 5
-    const final = [...myResults, ...osmResults].sort((a, b) => a.dist - b.dist).slice(0, 5);
+    // استبعاد أي نتائج تم تصنيفها كـ "مبنى" أو "غير مسموح"
+    const final = [...myResults, ...osmResults]
+        .filter(p => p.level !== "🚫 غير مسموح")
+        .sort((a, b) => a.dist - b.dist)
+        .slice(0, 5);
 
-    let report = "🚁 **تقرير تحليل الهبوط المباشر:**\n\n";
+    let report = "🚁 **نتائج فحص مهابط الطوارئ:**\n\n";
     const buttons = [];
 
     final.forEach((p, i) => {
-        report += `${i+1}. **${p.name}**\n📍 المسافة: ${p.dist.toFixed(2)} كم\n🛡️ الحالة: ${p.level}\n⛰️ الارتفاع التقريبي: ${p.elev}\n📝 الملاحظة: ${p.note}\n───────────────\n`;
-        buttons.push([{ text: `🗺️ فتح موقع ${i+1} على Google Maps`, url: `https://www.google.com/maps?q=${p.lat},${p.lon}` }]);
+        report += `${i+1}. **${p.name}**\n📏 المسافة: ${p.dist.toFixed(2)} كم\n🛡️ الحالة: ${p.level}\n📉 الارتفاع (AMSL): ${p.elev}\n📝 طبيعة الأرض: ${p.note}\n───────────────\n`;
+        buttons.push([{ text: `📍 تفقد الموقع ${i+1} على الخريطة`, url: `https://www.google.com/maps?q=${p.lat},${p.lon}` }]);
     });
 
     bot.sendMessage(chatId, report, { parse_mode: "Markdown", reply_markup: { inline_keyboard: buttons } });
 });
 
-// تشغيل السيرفر لـ Render
 const app = express();
-app.get("/", (req, res) => res.send("Heli-Bot Online"));
+app.get("/", (req, res) => res.send("System Active"));
 app.listen(process.env.PORT || 3000);
